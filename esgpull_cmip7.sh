@@ -15,12 +15,12 @@
 # Set the one you want to 1, others to 0
 solar=0
 ghg_conc=0
-o3=0
+o3=1
 amip=0
 simple_plumes=0
 strat_aerosols=0
 ndep=0
-pop_dens=1
+pop_dens=0
 
 CMIP7_VERSION_PROJECT="input4MIPs"
 
@@ -98,22 +98,29 @@ fi
 # NOTE: There are problems with this data.  
 #
 if [ "x${o3}" == "x1" ] ; then 
+   
+    # current recommendation is to use v1.2 climatology file
+    # for piControl but v2.0 files for historical 
+    # so we need both     
+    for source_id in FZJ-CMIP-ozone-1-2 FZJ-CMIP-ozone-2-0 ; do 
+       
+        CMIP7_VERSION_SOURCE_ID=\"${source_id}\"
 
-    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-ozone-1-2\" 
+        SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
 
-    SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
-
-    search_cmd="esgpull search project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
-    echo $search_cmd 
-    $search_cmd
-
-    add_cmd="esgpull add --tag ${SEARCH_TAG} --track project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
-    echo $add_cmd
-    $add_cmd 
+        search_cmd="esgpull search project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+        echo $search_cmd 
+        $search_cmd
     
-    esgpull update -y --tag ${SEARCH_TAG}
+        add_cmd="esgpull add --tag ${SEARCH_TAG} --track project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+        echo $add_cmd
+        $add_cmd 
+        
+        esgpull update -y --tag ${SEARCH_TAG}
     
-    esgpull download --tag ${SEARCH_TAG}
+        esgpull download --tag ${SEARCH_TAG}
+    
+    done
 
 fi 
 
