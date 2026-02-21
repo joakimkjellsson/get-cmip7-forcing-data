@@ -19,6 +19,8 @@ o3=0
 amip=0
 simple_plumes=0
 strat_aerosols=0
+ndep=0
+pop_dens=1
 
 CMIP7_VERSION_PROJECT="input4MIPs"
 
@@ -97,7 +99,7 @@ fi
 #
 if [ "x${o3}" == "x1" ] ; then 
 
-    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-ozone-1-0\" 
+    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-ozone-1-2\" 
 
     SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
 
@@ -198,3 +200,56 @@ if [ "x${emissions}" == "x1" ] ; then
 done 
 
 fi
+
+#
+# Population density
+#
+if [ "x${pop_dens}" == "x1" ] ; then
+    
+    # retrieve PIK-CMIP-1-0-1 (DECK) 
+    # and ScenarioMIP 
+    for source_id in PIK-CMIP-1-0-1 PIK-vl-1-0-0 PIK-ln-1-0-0 PIK-l-1-0-0 PIK-ml-1-0-0 PIK-m-1-0-0 PIK-hl-1-0-0 PIK-h-1-0-0 
+    do
+	
+        CMIP7_VERSION_SOURCE_ID=\"${source_id}\"
+        SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
+
+        search_cmd="esgpull search project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+        echo $search_cmd
+        $search_cmd
+
+        add_cmd="esgpull add --tag ${SEARCH_TAG} --track project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+        echo $add_cmd
+        $add_cmd
+
+        esgpull update -y --tag ${SEARCH_TAG}
+
+        esgpull download --tag ${SEARCH_TAG}
+
+    done 
+
+fi
+
+#
+# Nitrogen deposition
+#
+if [ "x${ndep}" == "x1" ] ; then
+
+    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-nitrogen-1-2\"
+    SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
+
+    search_cmd="esgpull search project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+    echo $search_cmd
+    $search_cmd
+
+    add_cmd="esgpull add --tag ${SEARCH_TAG} --track project:${CMIP7_VERSION_PROJECT} mip_era:${CMIP7_VERSION_MIP_ERA} source_id:${CMIP7_VERSION_SOURCE_ID}"
+    echo $add_cmd
+    $add_cmd
+
+    esgpull update -y --tag ${SEARCH_TAG}
+
+    esgpull download --tag ${SEARCH_TAG}
+
+fi
+
+
