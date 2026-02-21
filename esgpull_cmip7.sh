@@ -97,7 +97,7 @@ fi
 #
 if [ "x${o3}" == "x1" ] ; then 
 
-    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-ozone-1-0\" 
+    CMIP7_VERSION_SOURCE_ID=\"FZJ-CMIP-ozone-2-0\"
 
     SEARCH_TAG="cmip7-${CMIP7_VERSION_SOURCE_ID}"
 
