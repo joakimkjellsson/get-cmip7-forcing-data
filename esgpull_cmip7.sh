@@ -33,9 +33,12 @@ pop_dens=0
 PROJECT="input4MIPs"
 MIP_ERA="CMIP7"
 
-# Due to a bug in esgpull, the source_id should be wrapped in literal quotation
-# marks. Set to 0 to pass source_id unquoted.
-QUOTE_SOURCE_ID=1
+# Whether to wrap source_id in literal quotation marks when passing it to esgpull.
+# Some source_ids only match when quoted (esgpull bug), others only when unquoted,
+# so each dataset block below sets this explicitly.
+# Typed by hand in a terminal, source_id:"X" reaches esgpull WITHOUT quotes
+# (the shell strips them), i.e. that corresponds to QUOTE_SOURCE_ID=0.
+QUOTE_SOURCE_ID=0
 
 # If command-line arguments are given, they override the defaults above
 if [ $# -gt 0 ] ; then
@@ -80,9 +83,11 @@ get_esgf_data() {
     esgpull add --tag "${tag}" --track "${query[@]}"
 
     # if the search has been done before, update it in case of new data
+    echo "esgpull update -y --tag ${tag}"
     esgpull update -y --tag "${tag}"
 
     # download data
+    echo "esgpull download --tag ${tag}"
     esgpull download --tag "${tag}"
 }
 
@@ -111,6 +116,7 @@ get_esgf_list() {
 # Solar forcing (historical and scenario)
 #
 if [ "${solar}" == "1" ] ; then
+    QUOTE_SOURCE_ID=1
     get_esgf_list "SOLARIS-HEPPA-CMIP-4-6 SOLARIS-HEPPA-ScenarioMIP-4-6"
 fi
 
@@ -119,27 +125,38 @@ fi
 # We don't want it all, just some GHGs for now
 #
 if [ "${ghg_conc}" == "1" ] ; then
+    # piControl, historical
     ghg_sources="CR-CMIP-1-0-0"
+    # add scenario + extended scenarios
     for scen in vl ml m ln l hl h ; do
         ghg_sources="${ghg_sources} CR-${scen}-ext-1-1-0 CR-${scen}-1-1-0"
     done
+    # Variables
+    QUOTE_SOURCE_ID=0
     get_esgf_list "${ghg_sources}" "cfc11eq cfc12 ch4 co2 n2o"
 fi
 
 #
 # Ozone concentrations
-# NOTE: There are problems with this data.
-# Current recommendation is to use the v1.2 climatology file for piControl
-# but v2.0 files for historical, so we need both.
 #
 if [ "${o3}" == "1" ] ; then
-    get_esgf_list "FZJ-CMIP-ozone-1-2 FZJ-CMIP-ozone-2-0 FZJ-CMIP-ozone-vl-1-0 FZJ-CMIP-ozone-h-1-0"
+    # NOTE: There are problems with this data.
+    # Current recommendation is to use the v1.2 climatology file for piControl
+    # but v2.0 files for historical + scenarios, so we need both.
+    ozone_sources="FZJ-CMIP-ozone-1-2 FZJ-CMIP-ozone-2-0"
+    for scen in vl ln l m ml hl h; do
+        ozone_sources="${ozone_sources} FZJ-CMIP-ozone-${scen}-1-0"
+    done 
+    echo ${ozone_sources}
+    QUOTE_SOURCE_ID=0
+    get_esgf_list "${ozone_sources}" #"vmro3" 
 fi
 
 #
 # AMIP SST and sea ice
 #
 if [ "${amip}" == "1" ] ; then
+    QUOTE_SOURCE_ID=1
     get_esgf_list "PCMDI-AMIP-1-1-10"
 fi
 
@@ -149,18 +166,35 @@ fi
 if [ "${simple_plumes}" == "1" ] ; then
     wget https://zenodo.org/records/15283189/files/SPv2.1_1850-2023_CMIP7.nc
 
-    # scenarios
+    # scenarios (h + vl)
     wget https://zenodo.org/records/18713154/files/Simple_plumes_SPv2.1_CMIP7_h_scenario.nc
     wget https://zenodo.org/records/18713154/files/Simple_plumes_SPv2.1_CMIP7_vl_scenario.nc
 
+    # scenarios (hl + l + ln + m + ml)
+    wget https://zenodo.org/records/19845296/files/Simple_plumes_SPv2.1_CMIP7_hl_scenario.nc
+    wget https://zenodo.org/records/19845296/files/Simple_plumes_SPv2.1_CMIP7_l_scenario.nc
+    wget https://zenodo.org/records/19845296/files/Simple_plumes_SPv2.1_CMIP7_ln_scenario.nc
+    wget https://zenodo.org/records/19845296/files/Simple_plumes_SPv2.1_CMIP7_m_scenario.nc
+    wget https://zenodo.org/records/19845296/files/Simple_plumes_SPv2.1_CMIP7_ml_scenario.nc
+
+    # extended scenarios
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_h_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_hl_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_l_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_ln_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_m_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_ml_scenario.nc
+    wget https://zenodo.org/records/21671953/files/Simple_Plumes_SPv2.1_CMIP7_Ext_vl_scenario.nc
+
     mkdir -vp macv2sp
-    mv SPv2.1_1850-2023_CMIP7.nc Simple_plumes_SPv2.1_CMIP7*.nc macv2sp/.
+    mv SPv2.1_1850-2023_CMIP7.nc Simple_?lumes_SPv2.1_CMIP7*.nc macv2sp/.
 fi
 
 #
 # Stratospheric aerosols
 #
 if [ "${strat_aerosols}" == "1" ] ; then
+    QUOTE_SOURCE_ID=0
     get_esgf_list "UOEXETER-CMIP-2-2-1 UOEXETER-ScenarioMIP-2-2-2"
 fi
 
@@ -168,6 +202,7 @@ fi
 # Emissions
 #
 if [ "${emissions}" == "1" ] ; then
+    QUOTE_SOURCE_ID=1
     get_esgf_list "CEDS-CMIP-2025-04-18 CEDS-CMIP-2025-04-18-supplemental"
 fi
 
@@ -179,6 +214,7 @@ if [ "${pop_dens}" == "1" ] ; then
     for scen in vl ln l ml m hl h ; do
         pop_sources="${pop_sources} PIK-${scen}-1-0-0"
     done
+    QUOTE_SOURCE_ID=1
     get_esgf_list "${pop_sources}"
 fi
 
@@ -186,5 +222,10 @@ fi
 # Nitrogen deposition
 #
 if [ "${ndep}" == "1" ] ; then
-    get_esgf_list "FZJ-CMIP-nitrogen-1-2"
+    ndep_sources="FZJ-CMIP-nitrogen-2-0"
+    for scen in vl ln l m ml hl h ; do 
+        ndep_sources="${ndep_sources} FZJ-CMIP-nitrogen-${scen}-1-0"
+    done
+    QUOTE_SOURCE_ID=1
+    get_esgf_list "${ndep_sources}"
 fi
